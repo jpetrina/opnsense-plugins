@@ -1,0 +1,12 @@
+<metadata>
+    <unboundoverview>
+        <filename>UnboundOverview.js</filename>
+        <link>/ui/unbound/overview</link>
+        <endpoints>
+            <endpoint>/api/unbound/overview/*</endpoint>
+        </endpoints>
+        <translations>
+            <title>Unbound Overview</title>
+        </translations>
+    </unboundoverview>
+</metadata>

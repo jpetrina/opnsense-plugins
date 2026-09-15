@@ -1,0 +1,15 @@
+Adds a "Unbound Overview" widget to the OPNsense dashboard, mirroring
+the key data from Services -> Unbound DNS -> Query Log: total/resolved/
+blocked counters, blocklist size, a rolling query chart and the top-N
+passed or blocked domains.
+
+The widget only reuses the existing /api/unbound/overview/* endpoints,
+so no backend changes are required and it is offered in the dashboard
+picker to any user with access to Services -> Unbound DNS -> Query Log.
+
+Plugin Changelog
+================
+
+1.0
+
+* Initial release (proof of concept)

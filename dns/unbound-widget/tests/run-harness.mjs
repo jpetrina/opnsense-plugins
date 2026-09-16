@@ -123,13 +123,18 @@ assert.strictEqual(w.enabled, true);
 assert.ok(w.chart, 'chart instance exists after render (enabled)');
 assert.match(store.get('unboundov-test-stats').content, /Total/);
 assert.match(store.get('unboundov-test-stats').content, /Blocklist size/);
-assert.match(store.get('unboundov-test-toplist').content, /a\.example/);
+// both top lists render side by side from the start (like the overview page)
+assert.ok(store.has('unboundov-test-top'), 'top passed list registered in markup');
+assert.ok(store.has('unboundov-test-top-blocked'), 'top blocked list registered in markup');
+assert.match(store.get('unboundov-test-top').content, /a\.example/);
+assert.match(store.get('unboundov-test-top-blocked').content, /ads\.example \(Ads\)/);
 assert.strictEqual(w.chart.data.datasets[0].data.length, 3, 'rolling points + trailing zero');
 
-// top list switch to blocked -> policy label appears
-w.topType = 'block';
-w._renderTopList(w.lastTotals);
-assert.match(store.get('unboundov-test-toplist').content, /ads\.example \(Ads\)/);
+// tick while enabled refreshes both lists again
+w.lastTotals.top = {};
+await w.onWidgetTick();
+assert.match(store.get('unboundov-test-top').content, /a\.example/, 'tick re-renders passed list');
+assert.match(store.get('unboundov-test-top-blocked').content, /ads\.example \(Ads\)/, 'tick re-renders blocked list');
 
 // tick while enabled refreshes
 const before = w.chart.updates;

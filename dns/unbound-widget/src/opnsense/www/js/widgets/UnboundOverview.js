@@ -28,7 +28,8 @@
  * Unbound Overview dashboard widget (proof of concept).
  *
  * Mirrors the essentials of /ui/unbound/overview in a dashboard cell using
- * only the existing API endpoints:
+ * only the existing API endpoints (top passed + top blocked domains side by
+ * side, like the page):
  *   GET /api/unbound/overview/is_enabled
  *   GET /api/unbound/overview/totals/<max>
  *   GET /api/unbound/overview/rolling/<period>
@@ -39,7 +40,6 @@ export default class UnboundOverview extends BaseWidget {
     constructor(config) {
         super(config);
         this.period = '12';      // hours
-        this.topType = 'pass';   // pass | block
         this.topN = 10;
         this.enabled = true;
         this.chart = null;
@@ -66,16 +66,15 @@ export default class UnboundOverview extends BaseWidget {
                             <option value="12" selected>Last 12 hours</option>
                             <option value="24">Last 24 hours</option>
                         </select>
-                        <select id="${this._eid('toptype')}" class="form-control" title="Top domains list">
-                            <option value="pass" selected>Top passed domains</option>
-                            <option value="block">Top blocked domains</option>
-                        </select>
                     </div>
                     <div id="${this._eid('stats')}" style="display: flex; gap: 15px;"></div>
                     <div style="height: 200px; margin-top: 8px;">
                         <canvas id="${this._eid('chart')}"></canvas>
                     </div>
-                    <ul id="${this._eid('toplist')}" class="list-group" style="margin-top: 8px;"></ul>
+                    <div style="display: flex; gap: 10px; margin-top: 8px;">
+                        <ul id="${this._eid('top')}" class="list-group" style="flex: 1;"></ul>
+                        <ul id="${this._eid('top-blocked')}" class="list-group" style="flex: 1;"></ul>
+                    </div>
                 </div>
             </div>
         `);
@@ -88,13 +87,6 @@ export default class UnboundOverview extends BaseWidget {
             this.period = e.target.value;
             if (this.enabled) {
                 this._update().catch(() => {});
-            }
-        });
-
-        $(document).on(`change.unboundov-${this.id}`, `#${this._eid('toptype')}`, (e) => {
-            this.topType = e.target.value;
-            if (this.lastTotals) {
-                this._renderTopList(this.lastTotals);
             }
         });
 
@@ -222,7 +214,7 @@ export default class UnboundOverview extends BaseWidget {
 
         this.lastTotals = totals;
         this._renderStats(totals);
-        this._renderTopList(totals);
+        this._renderTopLists(totals);
         this._updateChart(rolling);
     }
 
@@ -244,15 +236,19 @@ export default class UnboundOverview extends BaseWidget {
         `);
     }
 
-    _renderTopList(totals) {
-        const $list = $(`#${this._eid('toplist')}`);
+    _renderTopLists(totals) {
+        /* side by side, same as the overview page: #top + #top-blocked */
+        this._renderTopList('top', totals ? (totals.top ?? {}) : {}, 'pass');
+        this._renderTopList('top-blocked', totals ? (totals.top_blocked ?? {}) : {}, 'block');
+    }
+
+    _renderTopList(listName, category, type) {
+        const $list = $(`#${this._eid(listName)}`);
         $list.empty();
 
-        if (!totals) {
-            return;
-        }
+        /* header row inside the list-group, like overview.volt's static <li> */
+        $list.append(`<li class="list-group-item"><b>${type === 'block' ? 'Top blocked domains' : 'Top passed domains'}</b></li>`);
 
-        const category = this.topType === 'block' ? (totals.top_blocked ?? {}) : (totals.top ?? {});
         let index = 0;
 
         for (const [domain, stat] of Object.entries(category)) {
@@ -262,7 +258,7 @@ export default class UnboundOverview extends BaseWidget {
             index++;
 
             let label = domain;
-            if (this.topType === 'block' && stat.latest_policy_uuid && this.policies[stat.latest_policy_uuid]) {
+            if (type === 'block' && stat.latest_policy_uuid && this.policies[stat.latest_policy_uuid]) {
                 label += ` (${this.policies[stat.latest_policy_uuid].description})`;
             }
 
